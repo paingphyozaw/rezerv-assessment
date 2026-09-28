@@ -2,7 +2,7 @@
 
 A small admin dashboard for a fitness studio, built around one data table component written from scratch. No table or grid library is used.
 
-- **Live site:** _TBD_
+- **Live site:** [part-2-component-engineering-challe.vercel.app](https://part-2-component-engineering-challe.vercel.app/)
 - **Code:** [part-2-component-engineering-challenge](https://github.com/paingphyozaw/rezerv-assessment/tree/main/part-2-component-engineering-challenge)
 
 ## Setup
