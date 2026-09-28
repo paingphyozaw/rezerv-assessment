@@ -2,7 +2,7 @@
 
 An endlessly scrolling illustrated world. It takes the feel of the [Fluffy HUGS](https://nft.fluffyhugs.io/) reference page and uses its own SVG fruit characters. One page: no routing, working CTAs, external media, or backend.
 
-- **Live site:** _TBD_
+- **Live site:** https://part-1-ui-animation-challenge.vercel.app/
 - **Repository:** [paingphyozaw/rezerv-assessment](https://github.com/paingphyozaw/rezerv-assessment) (this folder)
 
 ## Setup
