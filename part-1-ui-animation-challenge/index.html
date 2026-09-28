@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f3e9" />
+    <meta
+      name="description"
+      content="An endlessly playful little universe. Scroll into Little Orbit."
+    />
+    <title>Little Orbit — A little out of the ordinary.</title>
+  </head>
+  <body>
+    <div class="loader" role="status" aria-label="Loading Little Orbit">
+      <div class="loader-friend"></div>
+      <div class="loader-label">GATHERING THE GOOD STUFF<span>...</span></div>
+      <div class="loader-track"><i></i></div>
+    </div>
+    <header class="flex items-center justify-between">
+      <div class="wordmark">little orbit<span class="logo-star">✳</span></div>
+      <div class="header-right flex items-center gap-6">
+        <span class="edition">AN ENDLESS LITTLE UNIVERSE</span
+        ><button
+          class="round-button motion-toggle"
+          aria-label="Pause ambient animation"
+          aria-pressed="false"
+        >
+          <span aria-hidden="true">Ⅱ</span>
+        </button>
+      </div>
+    </header>
+    <div class="scroll-track" aria-hidden="true"></div>
+    <main
+      class="world"
+      id="main"
+      aria-label="Little Orbit, an illustrated scrolling story"
+    >
+      <div class="space-backdrop" aria-hidden="true">
+        <div class="star-field"></div>
+        <div class="planet planet-one"></div>
+        <div class="planet planet-two"></div>
+      </div>
+      <div class="orbit-ring ring-one" aria-hidden="true"></div>
+      <div class="orbit-ring ring-two" aria-hidden="true"></div>
+      <div class="blob blob-one" aria-hidden="true"></div>
+      <div class="blob blob-two" aria-hidden="true"></div>
+      <div class="blob blob-three" aria-hidden="true"></div>
+      <div class="fruit-field" aria-hidden="true"></div>
+      <section class="scene hero-copy" aria-labelledby="hero-heading">
+        <p class="eyebrow">SMALL THINGS. BIG PERSONALITY.</p>
+        <h1 id="hero-heading">A little out of<br />the <em>ordinary.</em></h1>
+        <p class="description">
+          A happy accident. A funny little friend.<br />A whole universe of
+          possibilities.
+        </p>
+      </section>
+      <section
+        class="scene orbit-copy"
+        aria-labelledby="orbit-heading"
+        aria-hidden="true"
+      >
+        <p class="eyebrow">DIFFERENT BY NATURE. BETTER TOGETHER.</p>
+        <h2 id="orbit-heading">Good company.<br /><em>Zero gravity.</em></h2>
+        <p class="description">
+          For the daydreamers. The odd ones.<br />The ones who never quite come
+          back down.
+        </p>
+      </section>
+      <section
+        class="scene bunch-copy"
+        aria-labelledby="bunch-heading"
+        aria-hidden="true"
+      >
+        <p class="eyebrow">A WHOLE WORLD OF LITTLE PERSONALITIES</p>
+        <h2 id="bunch-heading">Find your<br /><em>kind of weird.</em></h2>
+        <p class="description">
+          Every one a little different.<br />Every one belongs.
+        </p>
+      </section>
+      <div class="static-friends" aria-label="The little originals"></div>
+    </main>
+    <div class="bottom-bar">
+      <span class="side-note">FRESHLY PICKED<br />FROM OUR IMAGINATION</span>
+      <div class="scroll-cue">
+        <span class="scroll-label">SCROLL TO GET A LITTLE LOST</span
+        ><span class="scroll-arrow" aria-hidden="true">↓</span>
+      </div>
+      <div class="scene-indicator" aria-label="Scene 1 of 3">
+        <i class="active"></i><i></i><i></i><span>01 — 03</span>
+      </div>
+    </div>
+    <button class="collection-cta" aria-label="Give the universe a spin">
+      <span>A LITTLE<br />MORE JOY</span
+      ><span class="cta-arrow" aria-hidden="true">↗</span>
+    </button>
+    <noscript
+      ><style>
+        .loader,
+        .scroll-track,
+        .fruit-field {
+          display: none;
+        }
+        .world {
+          position: relative;
+          height: auto;
+        }
+        .scene {
+          position: relative;
+          inset: auto;
+          opacity: 1 !important;
+          padding: 150px 24px;
+          color: #263c86;
+        }
+        .orbit-copy,
+        .bunch-copy {
+          display: block;
+        }
+        .scene h2 {
+          font-size: 60px;
+        }
+      </style></noscript
+    >
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
