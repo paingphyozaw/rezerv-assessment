@@ -1,154 +1,101 @@
 # Little Orbit
 
-An endlessly scrolling illustrated world. It takes the feel of the [Fluffy HUGS](https://nft.fluffyhugs.io/) reference page and uses its own SVG fruit characters. One page: no routing, working CTAs, external media, or backend.
-
-The motion is built on Locomotive Scroll, a GSAP timeline, and ScrollTrigger. An earlier version with hand-written scroll and animation code is in the git history (commit `6a2c96c`); this version looks and moves the same.
+A one-page scrolling world with fruit characters, based on the feel of the [Fluffy HUGS](https://nft.fluffyhugs.io/) page. The artwork is my own SVG. There is no routing, backend, or external media.
 
 - **Live site:** https://part-1-ui-animation-challenge.vercel.app/
 - **Repository:** [paingphyozaw/rezerv-assessment](https://github.com/paingphyozaw/rezerv-assessment) (this folder)
 
 ## Setup
 
-Requires Node 22.18+ (Vite 8, and Node runs the TypeScript tests directly).
+Needs Node 22.18 or newer.
 
 ```sh
 cd part-1-ui-animation-challenge
 npm install
 npm run dev        # http://127.0.0.1:4173
-npm run typecheck  # tsc, strict mode
-npm test           # keyframe and keyboard tests (node:test)
-npm run build      # typecheck, then production build to dist/
-npm run preview    # serve dist/
+npm test           # unit tests
+npm run build      # type check + production build
 ```
 
-## Implemented slides
+## The 3 sections
 
-The brief asks for 3 of the reference's sections. This page follows the recommended set:
+1. **Loading screen.** A walking character and a loading bar. Then the screen slides up and the hero title rises in.
+2. **Hero.** A big headline with characters floating around it. When you scroll, one character flies past, very close.
+3. **Collection.** All the characters in a grid on a green background.
 
-1. **Loading screen.** A walking character and a progress track. It is followed by an entrance reveal: the loader lifts and the hero heading rises in.
-2. **Hero.** An oversized headline surrounded by floating characters. As you scroll, one character flies past at close range.
-3. **Collection.** A full-screen grid of the whole cast on a green background.
+A space scene sits between the hero and the collection. After the collection the page loops back to the hero, so you can scroll forever, up or down.
 
-An orbital space scene sits between the hero and the collection. It carries the characters from the scattered hero layout to the grid. After the collection, scrolling flows back into the hero, and you can scroll forward or backward forever.
+## What moves
 
-## Interactions
-
-| Moment | Behavior |
+| When | What happens |
 |---|---|
-| Load | Loader waits for font readiness, then plays the entrance reveal. |
-| Scroll | A scroll-scrubbed timeline moves, rotates, scales, and fades the characters and text; the space background and rings fade between scenes. The page stays fixed on screen while you scroll, and the loop never ends — with the wheel, touch, or the keyboard. |
-| Hover | Characters grow, tilt, and wave their limbs under the mouse. The header button and CTA have their own hover states. Mouse position adds parallax depth. |
-| Resize | The timeline re-measures and the reader stays at the same phase. Crossing 600px rebuilds the cast (24 ↔ 16 characters) and fades it in. |
-| Keyboard | Arrow keys, Page Up/Down, and Space scroll through Lenis, so they loop too. Space on a focused button presses the button. |
-| Controls | The header button pauses the floating motion; characters ease back to their pose. The bottom-right CTA spins the cast and does not navigate. |
+| Page loads | Loading screen, then the hero appears. |
+| Scroll | Characters move, turn, grow, and shrink. Text and backgrounds fade in and out. The loop never ends (mouse wheel, touch, or keyboard). |
+| Mouse | Characters follow the mouse a little. Hovering a character makes it grow, tilt, and wave. Buttons change on hover. |
+| Resize | The page stays in the same scene. Below 600px it uses 16 characters instead of 24. |
+| Buttons | Top-right pauses the floating motion. Bottom-right makes all characters spin. Neither goes to another page. |
 
 ## Libraries and why
 
-- **Locomotive Scroll v5** for smooth, infinite scrolling. v5 is built on Lenis. Its setup is one statement, and `lenisOptions: { infinite: true }` passes Lenis's infinite mode through. Locomotive's own extras (`data-scroll` parallax, in-view detection) are for pages whose sections scroll past; this page is one scene fixed to the screen, so they are unused. It renders on GSAP's ticker through `initCustomTicker`, so there is one frame loop.
-- **GSAP timeline** for the scroll animation. The whole page is one timeline exactly one second long, so every time in it equals a scroll progress (0.23 = fly-by reached).
-- **ScrollTrigger with `scrub: true`** to connect scroll progress to the timeline. Before building, a spike scrolled across the loop seam in both directions:
+- **Locomotive Scroll** for smooth scrolling. Its `infinite` option (from Lenis, which it is built on) makes the page loop forever.
+- **GSAP + ScrollTrigger** for the animation. The whole page is one GSAP timeline, and ScrollTrigger plays it as you scroll. I use `scrub: true`: a numeric value like `scrub: 1` made the timeline play backwards every time the loop jumped from the end to the start.
+- **SCSS** for styles, split into one file per part of the page.
+- **Vite** and **TypeScript**.
+- I did not use Framer Motion, because it is made for React and this page has no framework.
 
-  | Wiring | Seam | Timeline vs scroll gap |
-  |---|---|---|
-  | `scrub: true` | Seamless | ≤ 0.001 |
-  | `scrub: 1` | Rewinds through the middle of the timeline after each wrap | up to 0.87 |
+## How it works
 
-  Lenis already smooths the scroll. A numeric scrub adds a second smoothing layer, and that layer chases the wrap from 1 back to 0 by playing the timeline in reverse.
-- **No Framer Motion.** It targets React. This page is vanilla TypeScript, and one animation library is enough.
-- **SCSS** (Sass) meets the styling requirement. An earlier version used Tailwind v4, but only two elements used its utility classes; everything else was hand-written CSS. One styling system is simpler to read than two, so the page now uses SCSS only. SCSS adds one file per part of the page, mixins so every screen size is written the same way, and shared variables for colors, easing, and screen sizes.
-- **Vite** for the dev server and build. **TypeScript** (strict) throughout.
+**Animation.** Each character has 5 poses: hero, fly-by, orbit, grid, and hero again. They live in `keyframes.ts`. `scroll-timeline.ts` turns them into one GSAP timeline that is exactly 1 second long, so a time in the timeline is the same as the scroll progress (0 to 1).
 
-## Approach
-
-**Animation.** `keyframes.ts` holds the data: five poses per character (hero, fly-by, orbit, grid, hero again) and when each scene fades in and out. `scroll-timeline.ts` turns that data into GSAP tweens. Pose positions are viewport fractions, converted to pixels by function-based values that ScrollTrigger re-runs on resize (`invalidateOnRefresh`).
-
-**One layer per motion.** Each character is five nested elements, and each GSAP tween owns one of them, so no two tweens write the same property:
+**Five layers per character.** Each moving part has its own element, so animations never fight over the same property:
 
 ```
-character               follows the mouse   (gsap.quickTo x/y)
- └ __float               floats and sways    (yoyo sine tweens)
-   └ __pose              scroll position     (scroll timeline: x, y, rotation, scale)
-     └ __spin            CTA spin            (fading-wiggle ease)
-       └ __body          wobble (GSAP)
-         └ __art (SVG)   grows and tilts on hover (CSS)
+character          follows the mouse
+ └ __float          floats up, down, and sideways
+   └ __pose         position, turn, and size from the scroll
+     └ __spin       spin from the bottom-right button
+       └ __body     wobble
+         └ __art    the SVG; grows and tilts on hover (CSS)
 ```
 
-The mouse and float layers sit outside the pose layer, so they move in screen space and are not scaled by the fly-by's 3.8× zoom. The hover is on `__art` because GSAP writes inline styles on `__body`, and inline styles would override the hover rule.
+**Smooth, endless scroll.** Locomotive Scroll handles the wheel and touch. Arrow keys, Page Up/Down, and Space are sent through it too, so they loop as well.
 
-**Idle motion.** A yoyo tween between ±size with `sine.inOut` is exactly `size · sin(speed · t + offset)`. Each float, sway, and wobble keeps the speed and offset of the original hand-written sine. Pausing tweens a `strength` value from 1 to 0 that multiplies every movement, so characters ease back to their pose and keep their own rhythm when they start again.
-
-**Smooth scroll.** Locomotive (Lenis) handles wheel and touch input with `infinite: true` and `syncTouch: true`. Lenis only loops its own input, so scroll keys are sent through `lenis.scrollTo(…, { programmatic: false })` as well. The scroll track is six screens tall, so one loop is five screens of scrolling.
-
-**Responsiveness.** `gsap.matchMedia()` watches `(max-width: 600px)` and `prefers-reduced-motion`. When either changes, GSAP reverts every tween and ScrollTrigger from the previous setup and the page rebuilds. ScrollTrigger scrolls to the top while it measures, so the current phase is saved before each refresh and restored after.
+**Responsive.** `gsap.matchMedia()` rebuilds the animation when the screen crosses 600px or the reduced-motion setting changes. The scroll position is saved and restored, so you stay in the same scene.
 
 ## Project structure
 
-| File | Role |
+| File | What it does |
 |---|---|
-| `src/art.ts` | Original SVG characters and character data |
-| `src/keyframes.ts` | Plain data: poses, pose times, fades, scene start points |
-| `src/characters.ts` | Builds the five-layer HTML for each character |
-| `src/scroll-timeline.ts` | Builds the one-second scroll timeline from the keyframes |
-| `src/idle-motion.ts` | Floating, sway, wobble, blobs, mouse follow, CTA spin, pause |
-| `src/keyboard.ts` | How far each scroll key moves the page |
-| `src/main.ts` | Loader, Locomotive + ScrollTrigger setup, `matchMedia`, scene labels, controls |
-| `src/styles/` | SCSS: settings, reset, and one file per part of the page (see CSS architecture) |
-| `src/keyframes.test.ts` | Every loop joins up, pose times, fades, scene start points |
-| `src/keyboard.test.ts` | Scroll distance for each key, Space on buttons |
+| `src/main.ts` | Starts everything: loading screen, scroll, buttons, scene counter |
+| `src/keyframes.ts` | Character poses and scene timings (plain data) |
+| `src/scroll-timeline.ts` | Builds the scroll timeline |
+| `src/idle-motion.ts` | Floating, mouse follow, spin, and pause |
+| `src/characters.ts` | Builds the HTML for each character |
+| `src/keyboard.ts` | How far each key scrolls |
+| `src/art.ts` | The SVG fruit characters |
+| `src/styles/` | SCSS: settings, base, interface, scenes, characters, background, reduced motion |
+| `src/*.test.ts` | Tests for the keyframes and keyboard |
 
-## CSS architecture
+Class names use BEM (`scene`, `scene__title`, `scene--grid`). States set by JavaScript start with `is-` (`is-paused`, `is-active`).
 
-Styles are SCSS in `src/styles/`, one file per part of the page:
+## Performance
 
-```
-src/styles/
-├── main.scss             loads the files below, in this order
-├── _settings.scss        colors, easing, screen sizes, mixins
-├── _base.scss            browser reset (in @layer), page defaults, world, scroll track
-├── _interface.scss       loader, header, logo, pause button, bottom bar, scene counter, spin button
-├── _scenes.scss          the big text of each scene
-├── _characters.scss      the five character layers and the hover
-├── _background.scss      space, stars, planets, rings, blobs
-└── _reduced-motion.scss  pause, the reduced-motion page, and its gallery
-```
-
-- **Class names** use BEM: `block`, `block__part`, `block--variant`. For example `scene`, `scene__title`, `scene--grid`. Parts are never chained (`character__art`, not `character__pose__spin__art`), so markup can move without renaming.
-- **States** set by JavaScript start with `is-`: `is-ready`, `is-paused`, `is-in-space`, `is-reduced-motion`, `is-active`.
-- **Screen sizes** use mixins (`media-tablet`, `media-mobile`, `media-short-landscape`, `media-mouse`). Each section lists its normal styles first, then tablet, then mobile, then short landscape, so the smaller screen always wins.
-- **Element selectors** appear only in the reset, the page defaults, and for the unnamed shapes inside the SVG art.
-
-The switch from Tailwind to SCSS was checked by loading the old and new builds side by side and comparing every computed style of every element (about 300,000 values per size) at 1280×800, 820×1000, 390×844, 900×500, and 600×500, plus the reduced-motion page. No values differed. Hover and active rules, which computed styles cannot show, have the same declarations.
-
-## Performance notes
-
-- Only `transform` and `opacity` animate, plus the background color of the single full-viewport `.world` layer.
-- One frame loop: GSAP's ticker drives GSAP and Locomotive. It runs on `requestAnimationFrame`, so it stops in hidden tabs.
-- Scene labels (counter, hint text, `aria-hidden`, light header in space) are written only when they change.
-- 24 characters on desktop and tablet, 16 on mobile. No video, images, or font requests.
-- On touch devices ScrollTrigger ignores height-only resizes (the mobile address bar showing and hiding), so the page does not re-measure while you scroll.
-- The JS bundle is about 57 kB gzipped, mostly GSAP and ScrollTrigger. The earlier hand-written version was about 4 kB.
-- `prefers-reduced-motion` switches live to a finite, static page with all three sections and a four-character gallery.
+- Only `transform` and `opacity` animate (plus one background color), so the browser does not redo the layout while scrolling.
+- One animation loop drives both GSAP and the scrolling, and it stops when the tab is hidden.
+- Mobile uses 16 characters instead of 24. There are no images, videos, or web fonts to load.
+- With reduced motion turned on in the OS, the page becomes a normal static page.
+- The JavaScript is about 57 kB gzipped, mostly GSAP.
 
 ## Assumptions
 
-- Original artwork is acceptable in place of the reference NFT art, as the brief allows.
-- "Match the feel" means matching the movement and flow, not frame-exact timing.
-- The loading screen counts as one of the three sections, as the brief's recommended set suggests. The orbit scene is an extra transition.
-- All artwork is inline SVG and fonts are system fonts, so there is no heavy media to lazy-load. The loader covers font readiness.
-- Graceful degradation on lower-powered devices means fewer characters on mobile, a pause control, and the reduced-motion fallback.
-- CTAs give visual feedback only and do not navigate.
+- My own artwork is fine instead of the reference NFT art, as the brief allows.
+- "Match the feel" means the same kind of movement, not frame-exact timing.
+- The loading screen counts as one of the 3 sections.
+- There is no heavy media, so nothing needs lazy loading.
+- The buttons only animate; they do not navigate.
 
-## Differences from the earlier hand-written version
+## Testing
 
-1. Crossing 600px swaps the cast and fades it in; the earlier version also faded it out first.
-2. In the space scene, the earlier version added a small circle and an extra ±15° sway to each character. Both are removed here. Float and sway continue in every scene.
-3. Pause eases the characters back to their pose instead of snapping, and keeps scroll smoothing on.
-4. Pose easing is `sine.inOut` instead of smoothstep; the curves are close.
-5. The floating distance is measured when the page is built, so a resize that does not cross 600px keeps the old distance (at most a few pixels).
-
-## Verification
-
-- `npm test`: nine tests cover every character's loop, pose times, fades, scene and space start points at and around each boundary, and the scroll distance of each key.
-- `npm run typecheck` and `npm run build` succeed.
-- Browser checks (1280×800 and 500×800, automated wheel and key input): the seam is crossed forward and backward with no rewind, by wheel and by Page Up/Down; scenes switch at the expected progress; the first frame matches the keyframes exactly; pause eases characters to their pose and resume keeps each one's rhythm; the CTA spins and stops; crossing 600px rebuilds to 16 or 24 characters and keeps the phase; a desktop height resize keeps the phase.
-- Not yet measured: real-device frame rate, CPU-throttled profiling, iPhone touch scrolling across the seam, and a live OS reduced-motion toggle.
+- `npm test` runs 9 unit tests.
+- I checked in the browser: looping in both directions, scene changes, pause, the spin button, and resizing across 600px.
+- Not yet tested on a real phone or with CPU throttling.
