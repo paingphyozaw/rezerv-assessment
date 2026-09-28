@@ -1,0 +1,9 @@
+// Order matters: reset and page defaults first, then each part of the page,
+// then the pause and reduced-motion overrides, which must win.
+
+@use 'base';
+@use 'interface';
+@use 'scenes';
+@use 'characters';
+@use 'background';
+@use 'reduced-motion';

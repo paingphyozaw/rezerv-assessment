@@ -1,0 +1,170 @@
+@use 'settings' as *;
+
+// Behind the characters: the space scene, the rings and the color blobs.
+
+// ---- Space ----
+
+// The dark background of the orbit scene: stars and two planets.
+.space {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at 25% 80%, #454980, transparent 65%),
+    #151d46;
+  will-change: opacity;
+}
+
+.space__stars {
+  position: absolute;
+  inset: 0;
+  color: #f6efd9;
+}
+
+.space__star {
+  position: absolute;
+  font-style: normal;
+  font-size: 22px;
+}
+
+.space__planet {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #b9cbea, #757ab6);
+  width: 24vw;
+  height: 24vw;
+  right: -7%;
+  top: 6%;
+}
+
+// The planet's ring.
+.space__planet::after {
+  content: '';
+  position: absolute;
+  inset: 30% -25%;
+  border: 2px solid #e3d3f280;
+  border-radius: 50%;
+  rotate: -30deg;
+}
+
+.space__planet--small {
+  width: 12vw;
+  height: 12vw;
+  top: auto;
+  bottom: 8%;
+  left: 7%;
+  background: linear-gradient(145deg, #f3d397, #ec9a9e);
+}
+
+@include media-mobile {
+  .space__planet {
+    width: 55vw;
+    height: 55vw;
+    right: -15%;
+    top: 10%;
+  }
+
+  .space__planet--small {
+    width: 25vw;
+    height: 25vw;
+    left: 2%;
+    bottom: 10%;
+    top: auto;
+  }
+}
+
+// ---- Rings ----
+
+// The thin oval lines behind everything.
+.ring {
+  position: absolute;
+  z-index: 1;
+  width: 125%;
+  height: 72%;
+  left: -12%;
+  top: 14%;
+  border: 1px solid #263c8617;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+.ring--inner {
+  width: 90%;
+  height: 90%;
+  left: 5%;
+  top: 5%;
+}
+
+// The slow spin uses the `rotate` property, so it adds to the scroll-driven
+// `transform` that GSAP writes instead of replacing it.
+.ring--outer {
+  animation: spin 720s linear infinite;
+}
+
+.ring--inner {
+  animation: spin 514s linear infinite reverse;
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+// On mobile both rings share one wide size, including the inner ring.
+@include media-mobile {
+  .ring {
+    width: 180%;
+    left: -40%;
+  }
+}
+
+// ---- Blobs ----
+
+// Soft color shapes in the hero scene.
+.blob {
+  position: absolute;
+  width: 180px;
+  height: 110px;
+  border-radius: 36% 64% 66% 34% / 47% 47% 53% 53%;
+  z-index: 1;
+  will-change: transform;
+  background: linear-gradient(135deg, #c7e7ed, #dad0ef);
+}
+
+.blob--blue {
+  left: 24%;
+  top: 13%;
+}
+
+.blob--peach {
+  right: 12%;
+  bottom: 9%;
+  background: linear-gradient(135deg, #f2c5a2, #f1c1d2);
+  width: 240px;
+  height: 170px;
+}
+
+.blob--yellow {
+  left: 2%;
+  top: 58%;
+  width: 100px;
+  height: 90px;
+  background: #ece3a9;
+}
+
+@include media-mobile {
+  .blob--blue {
+    left: 35%;
+    top: 18%;
+    width: 110px;
+    height: 90px;
+  }
+
+  .blob--peach {
+    right: 8%;
+    bottom: 12%;
+    width: 150px;
+    height: 100px;
+  }
+}

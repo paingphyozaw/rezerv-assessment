@@ -1,0 +1,101 @@
+@use 'settings' as *;
+
+// ---- Gallery ----
+
+// The four-character gallery shown only on the reduced-motion page.
+.gallery {
+  display: none;
+}
+
+.is-reduced-motion .gallery {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  padding: 30px 5vw 120px;
+}
+
+.gallery__card {
+  background: var(--color-card);
+  border-radius: 100px 100px 15px 15px;
+  text-align: center;
+  padding: 20px;
+}
+
+.gallery__art {
+  width: 100%;
+}
+
+.gallery__name {
+  font-family: Georgia, serif;
+  font-size: 30px;
+}
+
+.gallery__note {
+  font-size: 12px;
+}
+
+@include media-mobile {
+  .is-reduced-motion .gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+// ---- Pause and reduced motion ----
+
+// The pause button stops every CSS animation too.
+.is-paused * {
+  animation-play-state: paused !important;
+}
+
+// The reduced-motion page: normal scrolling, no loop, no moving parts.
+.is-reduced-motion .scroll-track,
+.is-reduced-motion .characters,
+.is-reduced-motion .space,
+.is-reduced-motion .blob,
+.is-reduced-motion .ring,
+.is-reduced-motion .bottom-bar,
+.is-reduced-motion .loader,
+.is-reduced-motion .pause-button,
+.is-reduced-motion .scene--grid::before {
+  display: none;
+}
+
+.is-reduced-motion .world {
+  position: relative;
+  height: auto;
+  overflow: hidden;
+}
+
+// !important beats the inline styles GSAP left on the scenes.
+.is-reduced-motion .scene {
+  position: relative;
+  inset: auto;
+  min-height: 80svh;
+  padding: 160px 20px 100px;
+  opacity: 1 !important;
+  transform: none !important;
+  color: $color-ink;
+}
+
+.is-reduced-motion .scene--orbit {
+  background: #e5eada;
+}
+
+.is-reduced-motion .scene__title--hero {
+  opacity: 1;
+}
+
+.is-reduced-motion * {
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,51 @@
+// Colors, easing, screen sizes and mixins used by every other file.
+
+$color-ink: #263c86;
+$color-paper: #f6f3e9;
+$color-pink: #edb4c4;
+$color-coral: #de856b;
+
+$ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+$ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+// main.ts uses the same 600px in gsap.matchMedia. Change both together.
+$breakpoint-tablet: 1000px;
+$breakpoint-mobile: 600px;
+$breakpoint-short-height: 550px;
+
+// ---- Mixins ----
+
+// Screen sizes. Each section lists its normal styles first, then tablet, then
+// mobile, then short landscape, so the smaller screen always wins.
+@mixin media-tablet {
+  @media (max-width: $breakpoint-tablet) {
+    @content;
+  }
+}
+
+@mixin media-mobile {
+  @media (max-width: $breakpoint-mobile) {
+    @content;
+  }
+}
+
+@mixin media-short-landscape {
+  @media (max-height: $breakpoint-short-height) and (min-width: $breakpoint-mobile) {
+    @content;
+  }
+}
+
+// Only for devices with a real mouse, so hover never sticks after a tap.
+@mixin media-mouse {
+  @media (hover: hover) and (pointer: fine) {
+    @content;
+  }
+}
+
+// Small uppercase labels used in the header, scenes, bottom bar and loader.
+@mixin text-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  line-height: 1.7;
+}

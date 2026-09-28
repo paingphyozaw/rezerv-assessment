@@ -1,0 +1,106 @@
+@use 'settings' as *;
+
+// Browser reset, page defaults, and the fixed stage everything is drawn on.
+
+// ---- Reset ----
+
+// Removes browser default styles (the parts of Tailwind's reset this page
+// used). @layer makes every other rule win over these, whatever its selector.
+@layer reset {
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+
+  html {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  svg {
+    display: block;
+    vertical-align: middle;
+  }
+
+  button {
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    opacity: 1;
+    background-color: transparent;
+    border-radius: 0;
+    appearance: button;
+  }
+}
+
+// ---- Page defaults ----
+
+// Page-wide defaults. These are the only element selectors outside the reset:
+// they style the whole document, so a class would not add anything.
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  color: $color-ink;
+  background: $color-paper;
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  overscroll-behavior-y: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:focus-visible {
+  outline: 3px solid $color-coral;
+  outline-offset: 6px;
+}
+
+::selection {
+  background: $color-pink;
+  color: $color-ink;
+}
+
+// ---- Layout ----
+
+// The fixed stage everything is drawn on. It never scrolls; the scroll track
+// behind it only gives the page something to scroll.
+.world {
+  position: fixed;
+  inset: 0;
+  height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+  background: $color-paper;
+}
+
+// Six screens tall: one loop is five screens of scrolling.
+.scroll-track {
+  height: 600vh;
+  pointer-events: none;
+}
+
+.characters {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}

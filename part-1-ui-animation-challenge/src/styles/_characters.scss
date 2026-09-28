@@ -1,0 +1,84 @@
+@use 'settings' as *;
+
+// Each character is five nested layers. Each GSAP animation owns one of them
+// (see characters.ts). Only the pose layer has a size.
+.character,
+.character__float {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.character__pose {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: min(19vw, 290px);
+  will-change: transform;
+  transform-origin: center;
+}
+
+// The hover grows the SVG, not __body: GSAP writes inline styles on __body for
+// its wobble, and inline styles would beat the hover rule.
+.character__art {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  transform-origin: 50% 50%;
+  transition:
+    scale 0.5s $ease-bounce,
+    rotate 0.5s $ease-bounce;
+}
+
+.character__art .fruit__arms-legs {
+  transform-origin: 50% 65%;
+  animation: wave 2s ease-in-out infinite alternate;
+}
+
+.character--flip .fruit__arms-legs {
+  animation-delay: -1s;
+}
+
+@include media-mouse {
+  // The SVG shapes have no classes of their own. Only the drawn shapes react
+  // to the mouse, so the see-through box around each character never blocks
+  // the page.
+  .character__art path,
+  .character__art ellipse {
+    pointer-events: visiblePainted;
+  }
+
+  .character__pose:hover .character__art {
+    scale: 1.14;
+    rotate: -9deg;
+  }
+
+  .character--flip .character__pose:hover .character__art {
+    rotate: 9deg;
+  }
+
+  .character__pose:hover .fruit__arms-legs {
+    animation-duration: 0.28s;
+  }
+}
+
+@keyframes wave {
+  from {
+    transform: rotate(-3deg);
+  }
+  to {
+    transform: rotate(3deg);
+  }
+}
+
+@include media-mobile {
+  .character__pose {
+    width: 38vw;
+  }
+}
+
+@include media-short-landscape {
+  .character__pose {
+    width: 18vw;
+  }
+}

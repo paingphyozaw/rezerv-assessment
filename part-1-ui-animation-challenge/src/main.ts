@@ -1,21 +1,18 @@
-import './style.css';
+import './styles/main.scss';
+import 'locomotive-scroll/locomotive-scroll.css';
+import LocomotiveScroll from 'locomotive-scroll';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { fruit, friends } from './art.ts';
-import {
-  modulo,
-  mix,
-  windowOpacity,
-  posesFor,
-  poseAt,
-  type PoseCycle
-} from './motion.ts';
+import { createCharacters } from './characters.ts';
+import { createIdleMotion, type IdleMotion } from './idle-motion.ts';
+import { keyScrollDistance } from './keyboard.ts';
+import { getScene, isInSpace, type SceneNumber } from './keyframes.ts';
+import { createScrollTimeline, type PageElements } from './scroll-timeline.ts';
 
-interface Sprite {
-  element: HTMLElement;
-  index: number;
-  poses: PoseCycle;
-}
+gsap.registerPlugin(ScrollTrigger);
 
-// The page markup is static, so a missing element is a bug worth failing loudly on.
+// The HTML never changes, so a missing element is a bug. Fail loudly.
 function $<T extends Element = HTMLElement>(selector: string): T {
   const element = document.querySelector<T>(selector);
   if (!element) throw new Error(`Missing element: ${selector}`);
@@ -24,283 +21,215 @@ function $<T extends Element = HTMLElement>(selector: string): T {
 const $$ = <T extends Element = HTMLElement>(selector: string): T[] => [
   ...document.querySelectorAll<T>(selector)
 ];
-const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-const world = $('.world'),
-  field = $('.fruit-field'),
-  track = $('.scroll-track');
+
+const page: PageElements = {
+  world: $('.world'),
+  spaceBackground: $('.space'),
+  heroText: $('.scene--hero'),
+  orbitText: $('.scene--orbit'),
+  gridText: $('.scene--grid'),
+  rings: $$('.ring'),
+  blobs: $$('.blob')
+};
+const characterLayer = $('.characters');
 const scenes = $$('.scene');
-const dots = $$('.scene-indicator i');
-const backdrop = $('.space-backdrop');
-const rings = $$('.orbit-ring');
-const blobs = $$('.blob');
-const toggle = $<HTMLButtonElement>('.motion-toggle');
-const toggleIcon = $('.motion-toggle span');
-const label = $('.scroll-label');
-$('.loader-friend').innerHTML = fruit('pear', 1);
-$('.static-friends').innerHTML = friends
+const sceneDots = $$('.scene-counter__dot');
+const sceneCounter = $('.scene-counter');
+const sceneNumber = $('.scene-counter__number');
+const scrollHint = $('.bottom-bar__hint');
+const pauseButton = $<HTMLButtonElement>('.pause-button');
+const pauseIcon = $('.pause-button__icon');
+
+$('.loader__character').innerHTML = fruit('pear', 1);
+$('.gallery').innerHTML = friends
   .map(
     (f, i) =>
-      `<article style="--card-color:${f.color}">${fruit(f.kind, i)}<h3>${f.name}</h3><p>${f.note}</p></article>`
+      `<article class="gallery__card" style="--color-card:${f.color}">${fruit(f.kind, i, 'gallery__art')}<h3 class="gallery__name">${f.name}</h3><p class="gallery__note">${f.note}</p></article>`
   )
   .join('');
-$('.star-field').innerHTML = Array.from(
+$('.space__stars').innerHTML = Array.from(
   { length: 35 },
   (_, i) =>
-    `<i style="left:${(i * 47) % 100}%;top:${(i * 31) % 100}%;scale:${0.4 + (i % 4) * 0.25}">✧</i>`
+    `<i class="space__star" style="left:${(i * 47) % 100}%;top:${(i * 31) % 100}%;scale:${0.4 + (i % 4) * 0.25}">✧</i>`
 ).join('');
-let sprites: Sprite[] = [],
-  width = innerWidth,
-  height = innerHeight,
-  cycle = height * 5;
-let target = 0,
-  current = 0,
-  lastY = 0,
-  frame = 0,
-  lastTime = 0,
-  elapsed = 0;
-let paused = false,
-  ready = false,
-  activeScene = -1,
-  pointerX = 0,
-  pointerY = 0,
-  px = 0,
-  py = 0;
-let burst = 0,
-  resizeFrame = 0,
-  swapTimer = 0,
-  compact: boolean | null = null,
-  size = 0;
-const isStatic = () => reducedMotion.matches;
-const isCompact = () => width < 600;
 
-function createSprites(count: number, mobile: boolean) {
-  field.innerHTML = Array.from(
-    { length: count },
-    (_, i) =>
-      `<div class="floater"><div class="fruit-body">${fruit(friends[i % 4].kind, i)}</div></div>`
-  ).join('');
-  sprites = [...field.children].map((element, index) => ({
-    element: element as HTMLElement,
-    index,
-    poses: posesFor(index, count, mobile)
-  }));
-}
-// Cast size and choreography change together, only when the compact layout flips.
-function applyLayout() {
-  compact = isCompact();
-  createSprites(compact ? 16 : 24, compact);
-}
-function resizeSprites() {
-  size = compact
-    ? width * 0.38
-    : height <= 550
-      ? width * 0.18
-      : Math.min(width * 0.19, 290);
-  field.style.setProperty('--floater-size', `${size}px`);
-}
-// Crossing the breakpoint fades the cast out, swaps it, and fades it back in,
-// so characters never pop between the 24- and 16-character layouts.
-function swapLayout() {
-  if (swapTimer) return;
-  field.classList.add('is-swapping');
-  swapTimer = window.setTimeout(() => {
-    swapTimer = 0;
-    if (compact !== isCompact()) {
-      applyLayout();
-      resizeSprites();
-    }
-    field.classList.remove('is-swapping');
-    wake();
-  }, 280);
-}
-function measure() {
-  resizeFrame = 0;
-  const oldCycle = cycle;
-  width = innerWidth;
-  height = innerHeight;
-  cycle = height * 5;
-  if (compact !== isCompact()) {
-    if (ready && !isStatic() && sprites.length) swapLayout();
-    else applyLayout();
+const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
+const SCROLL_HINTS = [
+  'SCROLL TO GET A LITTLE LOST',
+  'SCROLL TO GET A LITTLE LOST',
+  'KEEP GOING. GOOD THINGS COME AROUND.'
+];
+let shownScene: SceneNumber | -1 = -1;
+let shownInSpace = false;
+let currentProgress = 0;
+let hasBuiltOnce = false;
+let isPaused = false;
+let idleMotion: IdleMotion | null = null;
+
+// Updates the scene counter, labels and header color. Only touches the DOM
+// when something actually changed.
+function updateSceneLabels(progress: number) {
+  currentProgress = progress;
+  const scene = getScene(progress);
+  if (scene !== shownScene) {
+    shownScene = scene;
+    scenes.forEach((el, i) =>
+      el.setAttribute('aria-hidden', String(i !== scene))
+    );
+    sceneDots.forEach((dot, i) => dot.classList.toggle('is-active', i === scene));
+    sceneCounter.setAttribute('aria-label', `Scene ${scene + 1} of 3`);
+    sceneNumber.textContent = `0${scene + 1} — 03`;
+    scrollHint.textContent = SCROLL_HINTS[scene];
   }
-  resizeSprites();
-  // Preserve timeline phase when the viewport or orientation changes.
-  target = (target / oldCycle) * cycle;
-  current = (current / oldCycle) * cycle;
-  document.body.classList.toggle('reduced-motion', isStatic());
-  if (!isStatic()) {
-    track.style.height = `${cycle * 3 + height}px`;
-    lastY = cycle + modulo(target, cycle);
-    window.scrollTo({ top: lastY, behavior: 'instant' });
-  } else {
-    track.style.height = '0px';
-    document.body.classList.remove('in-space');
-    window.scrollTo({ top: 0, behavior: 'instant' });
-    scenes.forEach((scene) => {
-      scene.removeAttribute('aria-hidden');
-      scene.style.opacity = '1';
-      scene.style.transform = 'none';
+  const inSpace = isInSpace(progress);
+  if (inSpace !== shownInSpace) {
+    shownInSpace = inSpace;
+    document.body.classList.toggle('is-in-space', inSpace);
+  }
+}
+
+function showStaticPage() {
+  document.body.classList.add('is-reduced-motion');
+  document.body.classList.remove('is-in-space');
+  scenes.forEach((scene) => scene.removeAttribute('aria-hidden'));
+  window.scrollTo(0, 0);
+}
+
+/** Builds every animation. Returns a function that removes what GSAP does not clean up itself. */
+function startAnimations(isMobile: boolean): () => void {
+  document.body.classList.remove('is-reduced-motion');
+  const characters = createCharacters(characterLayer, isMobile ? 16 : 24);
+  const timeline = createScrollTimeline(characters, isMobile, page);
+
+  // Locomotive Scroll uses Lenis for smooth scrolling that loops forever.
+  // It runs on GSAP's ticker, so there is only one animation loop.
+  const smoothScroll = new LocomotiveScroll({
+    lenisOptions: { infinite: true, syncTouch: true },
+    scrollCallback: () => ScrollTrigger.update(),
+    initCustomTicker: (render) => gsap.ticker.add(render),
+    destroyCustomTicker: (render) => gsap.ticker.remove(render)
+  });
+  const lenis = smoothScroll.lenisInstance;
+  const scrollToProgress = (progress: number) => {
+    lenis?.resize();
+    lenis?.scrollTo(progress * ScrollTrigger.maxScroll(window), {
+      immediate: true
     });
-  }
-  wake();
-}
-function onScroll() {
-  if (isStatic()) return;
-  const y = scrollY;
-  target += y - lastY;
-  lastY = y;
-  // Native scrolling is retained. Rebase in identical neighboring cycles, so
-  // wheel, touch, keyboard and reverse scrolling never reach a visual endpoint.
-  if (y < cycle * 0.5 || y > cycle * 2.5) {
-    const normalized = cycle + modulo(y, cycle);
-    lastY = normalized;
-    window.scrollTo({ top: normalized, behavior: 'instant' });
-  }
-  wake();
-}
-function wake() {
-  if (!frame && ready && !document.hidden && !isStatic())
-    frame = requestAnimationFrame(render);
-}
-function render(now: number) {
-  frame = 0;
-  const dt = Math.min((now - (lastTime || now)) / 1000, 0.05);
-  lastTime = now;
-  if (!paused) elapsed += dt;
-  // Frame-rate-independent damping; input changes are smoothed, not throttled.
-  current = paused ? target : mix(current, target, 1 - Math.exp(-dt * 9));
-  if (Math.abs(target - current) < 0.05) current = target;
-  px = mix(px, pointerX, 1 - Math.exp(-dt * 4));
-  py = mix(py, pointerY, 1 - Math.exp(-dt * 4));
-  burst = Math.max(0, burst - dt * 0.8);
-  const phase = modulo(current / cycle);
-  const space = windowOpacity(phase, 0.22, 0.65, 0.13);
-  const collage = windowOpacity(phase, 0.52, 0.92, 0.13);
-  backdrop.style.opacity = String(space);
-  const cream = [246, 243, 233],
-    green = [220, 229, 199];
-  // Only a single full-viewport layer changes color; all objects use transforms.
-  world.style.backgroundColor = `rgb(${cream.map((c, i) => Math.round(mix(c, green[i], collage))).join(',')})`;
-  sprites.forEach(({ element, poses, index }) => {
-    const pose = poseAt(poses, phase);
-    const drift = paused
-      ? 0
-      : Math.sin(elapsed * 0.62 + index * 1.7) * height * 0.016;
-    const sway = paused ? 0 : Math.cos(elapsed * 0.47 + index) * width * 0.012;
-    const orbitAngle = elapsed * 0.09 + index * 0.8;
-    const orbital = space * (paused ? 0 : 1);
-    const x =
-      pose.x * width +
-      sway +
-      Math.cos(orbitAngle) * width * 0.045 * orbital +
-      px * (8 + (index % 4) * 4);
-    const y =
-      pose.y * height +
-      drift +
-      Math.sin(orbitAngle) * height * 0.045 * orbital +
-      py * (8 + (index % 4) * 4);
-    const r =
-      pose.r +
-      (paused ? 0 : Math.sin(elapsed * 0.5 + index) * 9) +
-      burst * Math.sin(index + elapsed * 6) * 28 +
-      orbital * Math.sin(elapsed * 0.3 + index) * 15;
-    element.style.transform = `translate3d(${x - size / 2}px,${y - size * 0.625}px,0) rotate(${r}deg) scale(${pose.s})`;
+  };
+
+  // scrub: true (not a number). Lenis already smooths the scroll. A number
+  // would smooth it again and play the whole timeline backwards each time
+  // the loop jumps from the end to the start.
+  shownScene = -1;
+  shownInSpace = false;
+  ScrollTrigger.create({
+    start: 0,
+    end: 'max',
+    scrub: true,
+    animation: timeline,
+    invalidateOnRefresh: true,
+    onUpdate: (self) => updateSceneLabels(self.progress)
   });
-  const heroOpacity = 1 - windowOpacity(phase, 0.07, 0.95, 0.13);
-  const orbitOpacity = windowOpacity(phase, 0.27, 0.6, 0.09);
-  const bunchOpacity = windowOpacity(phase, 0.59, 0.89, 0.075);
-  const opacities = [heroOpacity, orbitOpacity, bunchOpacity];
-  scenes.forEach((scene, i) => {
-    const opacity = opacities[i];
-    scene.style.opacity = String(opacity);
-    scene.style.transform = `translate3d(0,${(1 - opacity) * (i === 0 ? -65 : 55)}px,0) scale(${0.94 + opacity * 0.06})`;
-  });
-  const selected = opacities.indexOf(Math.max(...opacities));
-  if (activeScene !== selected) {
-    activeScene = selected;
-    scenes.forEach((scene, i) =>
-      scene.setAttribute('aria-hidden', String(i !== selected))
+
+  idleMotion = createIdleMotion(characters, page.blobs);
+  if (isPaused) idleMotion.pause();
+  const onMouseMove = (event: PointerEvent) => {
+    if (event.pointerType !== 'mouse' || isPaused) return;
+    idleMotion?.followMouse(
+      event.clientX / innerWidth - 0.5,
+      event.clientY / innerHeight - 0.5
     );
-    dots.forEach((dot, i) => dot.classList.toggle('active', i === selected));
-    $('.scene-indicator').setAttribute(
-      'aria-label',
-      `Scene ${selected + 1} of 3`
-    );
-    $('.scene-indicator span').textContent = `0${selected + 1} — 03`;
-    label.textContent =
-      selected === 2
-        ? 'KEEP GOING. GOOD THINGS COME AROUND.'
-        : 'SCROLL TO GET A LITTLE LOST';
+  };
+  const onMouseLeave = () => idleMotion?.followMouse(0, 0);
+  page.world.addEventListener('pointermove', onMouseMove, { passive: true });
+  page.world.addEventListener('pointerleave', onMouseLeave);
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    const distance = keyScrollDistance(event.key, {
+      shift: event.shiftKey,
+      onButton: event.target instanceof HTMLButtonElement,
+      pageHeight: innerHeight
+    });
+    if (distance === null || !lenis) return;
+    event.preventDefault();
+    // programmatic: false lets Lenis treat it like a scroll wheel, so it loops.
+    lenis.scrollTo(lenis.targetScroll + distance, { programmatic: false });
+  };
+  window.addEventListener('keydown', onKeyDown);
+
+  // ScrollTrigger jumps to the top while it measures the page (after a
+  // resize or a rebuild). Save the progress before that and go back after.
+  // A new ScrollTrigger reports 0 until it is measured, so the progress is
+  // kept in `currentProgress`, which lives outside this function.
+  let savedProgress = currentProgress;
+  const saveProgress = () => (savedProgress = currentProgress);
+  const restoreProgress = () => scrollToProgress(savedProgress);
+  ScrollTrigger.addEventListener('refreshInit', saveProgress);
+  ScrollTrigger.addEventListener('refresh', restoreProgress);
+
+  if (hasBuiltOnce) {
+    scrollToProgress(savedProgress);
+    gsap.from(characterLayer, { opacity: 0, duration: 0.35 });
   }
-  document.body.classList.toggle('in-space', space > 0.55);
-  rings.forEach((ring, i) => {
-    ring.style.opacity = String(1 - space * 0.6);
-    ring.style.transform = `rotate(${(i ? 28 : -25) + (paused ? 0 : elapsed * (i ? -0.7 : 0.5)) + Math.sin(phase * Math.PI * 2) * 20}deg) scale(${1 + space * 0.3})`;
-  });
-  blobs.forEach((blob, i) => {
-    blob.style.opacity = String(1 - space);
-    blob.style.transform = `translate3d(${Math.sin(elapsed * 0.2 + i) * 40}px,${Math.cos(elapsed * 0.3 + i) * 55}px,0) rotate(${elapsed * (i ? 2 : -2)}deg)`;
-  });
-  if (!paused || Math.abs(target - current) > 0.05 || burst > 0) wake();
+  hasBuiltOnce = true;
+  updateSceneLabels(savedProgress);
+
+  return () => {
+    ScrollTrigger.removeEventListener('refreshInit', saveProgress);
+    ScrollTrigger.removeEventListener('refresh', restoreProgress);
+    page.world.removeEventListener('pointermove', onMouseMove);
+    page.world.removeEventListener('pointerleave', onMouseLeave);
+    window.removeEventListener('keydown', onKeyDown);
+    idleMotion = null;
+    smoothScroll.destroy();
+  };
 }
-window.addEventListener('scroll', onScroll, { passive: true });
-window.addEventListener(
-  'resize',
-  () => {
-    if (!resizeFrame) resizeFrame = requestAnimationFrame(measure);
-  },
-  { passive: true }
-);
-world.addEventListener(
-  'pointermove',
-  (event: PointerEvent) => {
-    if (event.pointerType !== 'mouse' || paused || isStatic()) return;
-    pointerX = event.clientX / width - 0.5;
-    pointerY = event.clientY / height - 0.5;
-    wake();
-  },
-  { passive: true }
-);
-world.addEventListener('pointerleave', () => {
-  pointerX = pointerY = 0;
-});
-document.addEventListener('visibilitychange', () => {
-  lastTime = 0;
-  if (document.hidden) {
-    cancelAnimationFrame(frame);
-    frame = 0;
-  } else wake();
-});
-reducedMotion.addEventListener('change', () => {
-  cancelAnimationFrame(frame);
-  frame = 0;
-  measure();
-});
-toggle.addEventListener('click', () => {
-  paused = !paused;
-  document.body.classList.toggle('motion-paused', paused);
-  toggle.setAttribute('aria-pressed', String(paused));
-  toggle.setAttribute(
+
+pauseButton.addEventListener('click', () => {
+  isPaused = !isPaused;
+  document.body.classList.toggle('is-paused', isPaused);
+  pauseButton.setAttribute('aria-pressed', String(isPaused));
+  pauseButton.setAttribute(
     'aria-label',
-    paused ? 'Resume ambient animation' : 'Pause ambient animation'
+    isPaused ? 'Resume animation' : 'Pause animation'
   );
-  toggleIcon.textContent = paused ? '▷' : 'Ⅱ';
-  pointerX = pointerY = 0;
-  wake();
+  pauseIcon.textContent = isPaused ? '▷' : 'Ⅱ';
+  if (isPaused) idleMotion?.pause();
+  else idleMotion?.resume();
 });
-$('.collection-cta').addEventListener('click', () => {
-  if (!paused && !isStatic()) {
-    burst = 1;
-    wake();
-  }
+$('.spin-button').addEventListener('click', () => {
+  if (!isPaused) idleMotion?.spin();
 });
-async function enter() {
+
+async function hideLoader() {
+  const reducedMotion = matchMedia(REDUCED_MOTION).matches;
+  document.body.classList.toggle('is-reduced-motion', reducedMotion);
   await document.fonts.ready;
-  if (!isStatic()) await new Promise((resolve) => setTimeout(resolve, 1000));
-  document.body.classList.add('ready');
+  if (!reducedMotion) await new Promise((resolve) => setTimeout(resolve, 1000));
+  document.body.classList.add('is-ready');
   $('.loader').setAttribute('aria-hidden', 'true');
-  ready = true;
-  measure();
 }
-measure();
-enter();
+
+// gsap.matchMedia rebuilds everything when the screen crosses 600px or the
+// reduced-motion setting changes. One of `reduce` and `motion` always
+// matches, so the function below always runs.
+function setupAnimations() {
+  gsap.matchMedia().add(
+    {
+      isMobile: '(max-width: 600px)',
+      reduce: REDUCED_MOTION,
+      motion: '(prefers-reduced-motion: no-preference)'
+    },
+    (context) => {
+      const { isMobile, reduce } = context.conditions as {
+        isMobile: boolean;
+        reduce: boolean;
+      };
+      if (reduce) return showStaticPage();
+      return startAnimations(isMobile);
+    }
+  );
+}
+
+hideLoader().then(setupAnimations);

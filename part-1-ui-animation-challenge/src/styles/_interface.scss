@@ -1,0 +1,372 @@
+@use 'settings' as *;
+
+// Everything on top of the scenes: loader, header, bottom bar and buttons.
+
+// ---- Loader ----
+
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: $color-paper;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 1s $ease-out,
+    visibility 1s;
+}
+
+// Once the page is ready, the loader slides up like a curtain.
+.is-ready .loader {
+  transform: translateY(-101%);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loader__character {
+  width: 115px;
+  animation: walk 0.45s ease-in-out infinite alternate;
+}
+
+.loader__label {
+  @include text-label;
+  font-size: 8px;
+  margin: 20px 0;
+  letter-spacing: 2px;
+}
+
+.loader__track {
+  height: 2px;
+  width: 140px;
+  background: #263c8615;
+  overflow: hidden;
+}
+
+.loader__bar {
+  display: block;
+  width: 50%;
+  height: 100%;
+  background: $color-ink;
+  animation: load 1s ease-in-out infinite;
+}
+
+@keyframes walk {
+  from {
+    transform: translateY(0) rotate(-6deg);
+  }
+  to {
+    transform: translateY(-8px) rotate(6deg);
+  }
+}
+
+@keyframes load {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+// ---- Header and pause button ----
+
+.header {
+  position: fixed;
+  z-index: 20;
+  inset: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 4.2vw;
+  opacity: 0;
+  translate: 0 -15px;
+  transition:
+    opacity 0.8s 0.3s,
+    translate 0.8s 0.3s,
+    color 0.5s;
+  pointer-events: none;
+}
+
+.is-ready .header {
+  opacity: 1;
+  translate: 0 0;
+}
+
+// Light text over the dark space background.
+.is-in-space .header {
+  color: $color-paper;
+}
+
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.header__tagline {
+  @include text-label;
+}
+
+.pause-button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: auto;
+  transition:
+    background 0.25s,
+    color 0.25s,
+    transform 0.3s;
+}
+
+.pause-button:hover {
+  background: $color-ink;
+  color: $color-paper;
+  transform: rotate(12deg);
+}
+
+@include media-tablet {
+  .header__tagline {
+    display: none;
+  }
+}
+
+@include media-mobile {
+  .header {
+    padding: 22px;
+  }
+}
+
+@include media-short-landscape {
+  .header {
+    padding-top: 14px;
+  }
+}
+
+// ---- Logo ----
+
+// Kept separate from the header, so the logo can be used anywhere.
+.logo {
+  font-size: 30px;
+  letter-spacing: -1.7px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.logo__star {
+  font-size: 36px;
+}
+
+@include media-mobile {
+  .logo {
+    font-size: 25px;
+  }
+
+  .logo__star {
+    font-size: 30px;
+  }
+}
+
+// ---- Bottom bar ----
+
+.bottom-bar {
+  position: fixed;
+  z-index: 20;
+  left: 4.2vw;
+  right: 4.2vw;
+  bottom: 28px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  pointer-events: none;
+  transition: color 0.5s;
+}
+
+.is-in-space .bottom-bar {
+  color: $color-paper;
+}
+
+.bottom-bar__note {
+  @include text-label;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+}
+
+.bottom-bar__cue {
+  @include text-label;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 9px;
+}
+
+.bottom-bar__arrow {
+  font-size: 25px;
+  animation: bounce 1.8s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(5px);
+  }
+}
+
+@include media-tablet {
+  .bottom-bar__note {
+    display: none;
+  }
+}
+
+@include media-mobile {
+  .bottom-bar {
+    bottom: 25px;
+    left: 22px;
+    right: 22px;
+  }
+
+  .bottom-bar__cue {
+    font-size: 6px;
+    letter-spacing: 1px;
+    align-items: start;
+    max-width: 230px;
+  }
+
+  .bottom-bar__arrow {
+    margin-left: 0;
+  }
+}
+
+@include media-short-landscape {
+  .bottom-bar {
+    bottom: 12px;
+  }
+}
+
+// ---- Scene counter ----
+
+// "● ○ ○ 01 — 03" in the bottom bar.
+.scene-counter {
+  @include text-label;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 170px;
+  font-size: 9px;
+}
+
+.scene-counter__dot {
+  width: 5px;
+  height: 5px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+
+.scene-counter__dot.is-active {
+  background: currentColor;
+}
+
+.scene-counter__number {
+  margin-left: 8px;
+}
+
+@include media-tablet {
+  .scene-counter {
+    margin-right: 125px;
+  }
+}
+
+@include media-mobile {
+  .scene-counter {
+    display: none;
+  }
+}
+
+// ---- Spin button ----
+
+// "A little more joy" button in the bottom-right corner.
+.spin-button {
+  position: fixed;
+  bottom: 22px;
+  right: 28px;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  width: 132px;
+  height: 132px;
+  border: 0;
+  border-radius: 48% 52% 63% 37% / 51% 35% 65% 49%;
+  background: $color-ink;
+  color: $color-paper;
+  transform: rotate(-9deg);
+  transition:
+    transform 0.4s $ease-out,
+    background 0.3s,
+    color 0.3s;
+}
+
+.spin-button__label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  line-height: 1.8;
+  text-align: left;
+  rotate: 9deg;
+}
+
+.spin-button__arrow {
+  font-size: 25px;
+  rotate: 9deg;
+}
+
+.spin-button:hover {
+  transform: rotate(5deg) scale(1.08);
+  background: $color-pink;
+  color: $color-ink;
+}
+
+.spin-button:active {
+  scale: 0.92;
+}
+
+// Comes after :hover, so the button stays light while in space.
+.is-in-space .spin-button {
+  background: $color-paper;
+  color: $color-ink;
+}
+
+@include media-tablet {
+  .spin-button {
+    width: 112px;
+    height: 112px;
+  }
+}
+
+@include media-mobile {
+  .spin-button {
+    width: 92px;
+    height: 92px;
+    right: 18px;
+    bottom: 18px;
+    gap: 10px;
+  }
+
+  .spin-button__label {
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+
+  .spin-button__arrow {
+    font-size: 20px;
+  }
+}
